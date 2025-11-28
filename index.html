@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多媒体智能实验室 - MILab Research Showcase</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #020617; /* Slate 950 */
+            color: #f8fafc;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* SVG Filters for simulation */
+        .filter-noise { filter: url('#noise-filter') contrast(120%) brightness(110%); }
+        .filter-dark { filter: brightness(0.4) contrast(1.1) sepia(0.2); }
+        .filter-blur { filter: blur(3px); }
+        /* Simulates reflection/fog/haze */
+        .filter-reflection { filter: brightness(1.2) contrast(0.8) opacity(0.7) drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
+        .filter-fog { filter: brightness(0.9) contrast(0.8) blur(1px) grayscale(0.3) opacity(0.8); }
+        .filter-moire { filter: contrast(1.5) brightness(0.9) hue-rotate(15deg); }
+        .filter-sepia { filter: sepia(0.8) contrast(1.2) brightness(0.9) grayscale(0.2); } 
+
+        /* Draggable Slider Styles */
+        .slider-handle {
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
+        }
+
+        .clip-text-gradient {
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .paper-card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SVG Definitions for Filters (Hidden) -->
+    <svg style="display: none;">
+        <defs>
+            <filter id="noise-filter">
+                <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/>
+                <feColorMatrix type="saturate" values="0"/>
+                <feBlend mode="overlay" in2="SourceGraphic" result="blend"/>
+            </filter>
+        </defs>
+    </svg>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons Helper ---
+        const Icon = ({ name, size = 24, className }) => {
+            return <i data-lucide={name} className={className} style={{ width: size, height: size, fontSize: size }}></i>;
+        };
+
+        // --- Components ---
+
+        const Navbar = () => {
+            const [scrolled, setScrolled] = useState(false);
+            
+            useEffect(() => {
+                const handleScroll = () => setScrolled(window.scrollY > 20);
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            return (
+                <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-slate-950/90 backdrop-blur-md shadow-lg border-b border-slate-800/50' : 'bg-transparent'}`}>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-20">
+                            <div 
+                                className="flex items-center gap-3 cursor-pointer" 
+                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                            >
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                    <Icon name="aperture" className="text-white" size={24} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-white font-bold text-lg leading-tight tracking-tight">MILab</span>
+                                    <span className="text-slate-400 text-[10px] font-mono uppercase tracking-widest">多媒体智能实验室</span>
+                                </div>
+                            </div>
+                            <div className="hidden md:flex items-center space-x-8">
+                                <a href="#research" className="text-slate-300 hover:text-white text-sm font-medium transition-colors">研究方向</a>
+                                <a href="#publications" className="text-slate-300 hover:text-white text-sm font-medium transition-colors">发表论文</a>
+                                <a href="#team" className="text-slate-300 hover:text-white text-sm font-medium transition-colors">团队成员</a>
+                                <div className="h-6 w-px bg-slate-800"></div>
+                                <button 
+                                    className="bg-white text-slate-900 hover:bg-blue-50 px-5 py-2.5 rounded-full text-sm font-bold transition-all transform hover:scale-105 shadow-lg shadow-white/10"
+                                    onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+                                >
+                                    联系我们
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+
+        const ComparisonSlider = ({ 
+            type = 'image', 
+            src, 
+            srcBefore,
+            fallbackSrc,       
+            fallbackSrcBefore, 
+            beforeFilter = '', 
+            labelBefore = 'INPUT', // Updated default
+            labelAfter = 'OURS',   // Updated default
+            heightClass = 'h-64 md:h-96',
+            objectPosition = 'center'
+        }) => {
+            const [sliderPosition, setSliderPosition] = useState(50);
+            const [videoError, setVideoError] = useState(false); 
+            const [isUsingFallback, setIsUsingFallback] = useState(false);
+            const containerRef = useRef(null);
+            const isDragging = useRef(false);
+
+            const handleMove = (clientX) => {
+                if (containerRef.current) {
+                    const rect = containerRef.current.getBoundingClientRect();
+                    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+                    const percentage = (x / rect.width) * 100;
+                    setSliderPosition(percentage);
+                }
+            };
+
+            const onMouseDown = () => (isDragging.current = true);
+            const onMouseUp = () => (isDragging.current = false);
+            const onMouseMove = (e) => {
+                if (isDragging.current) handleMove(e.clientX);
+            };
+            
+            const onTouchStart = () => (isDragging.current = true);
+            const onTouchEnd = () => (isDragging.current = false);
+            const onTouchMove = (e) => {
+                if (isDragging.current) handleMove(e.touches[0].clientX);
+            };
+
+            const videoRef1 = useRef(null);
+            const videoRef2 = useRef(null);
+
+            useEffect(() => {
+                if (type === 'video' && videoRef1.current && videoRef2.current) {
+                    const v1 = videoRef1.current;
+                    const v2 = videoRef2.current;
+                    const sync = () => {
+                        // Only sync if both videos are playing and metadata is loaded
+                        if (v1.readyState >= 1 && v2.readyState >= 1) {
+                            if (Math.abs(v1.currentTime - v2.currentTime) > 0.1) {
+                                v2.currentTime = v1.currentTime;
+                            }
+                        }
+                    };
+                    const interval = setInterval(sync, 200);
+                    return () => clearInterval(interval);
+                }
+            }, [type]);
+
+            const handleVideoError = (e) => {
+                const errorSrc = e.target.src;
+                // If we encounter an error and we have a fallback, try switching to it
+                if (fallbackSrc && !isUsingFallback) {
+                    console.warn(`Local video (${errorSrc}) failed to load, switching to fallback demo.`);
+                    setIsUsingFallback(true);
+                    setVideoError(false); // Reset error state as we are trying fallback
+                } else if (isUsingFallback) {
+                    // Fallback failed too
+                    console.error(`Fallback video (${errorSrc}) also failed to load.`);
+                    setVideoError(true);
+                } else {
+                    console.error(`Video load error (${errorSrc}) and no fallback provided.`);
+                    setVideoError(true);
+                }
+            };
+
+            // Determine effective sources
+            const effectiveSrc = isUsingFallback ? fallbackSrc : src;
+            const effectiveSrcBefore = isUsingFallback ? (fallbackSrcBefore || fallbackSrc) : (srcBefore || src);
+            // Apply filter to fallback before if specifically requested or if it's the same as src (to simulate difference)
+            const effectiveBeforeFilter = isUsingFallback ? (fallbackSrcBefore ? '' : 'filter-old') : beforeFilter;
+
+            return (
+                <div 
+                    ref={containerRef}
+                    className={`relative w-full ${heightClass} bg-slate-800 rounded-xl overflow-hidden cursor-ew-resize select-none border border-slate-700/50 group shadow-2xl`}
+                    onMouseDown={onMouseDown}
+                    onMouseUp={onMouseUp}
+                    onMouseLeave={onMouseUp}
+                    onMouseMove={onMouseMove}
+                    onTouchStart={onTouchStart}
+                    onTouchEnd={onTouchEnd}
+                    onTouchMove={onTouchMove}
+                >
+                    {/* Error Message Layer - Only shows if BOTH local and fallback fail */}
+                    {videoError && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-900 z-50 pointer-events-none">
+                            <div className="text-center p-4">
+                                <Icon name="alert-triangle" className="text-red-500 mx-auto mb-2" size={32} />
+                                <p className="text-red-400 font-bold">无法加载视频</p>
+                                <p className="text-slate-400 text-xs mt-1">请确保 {src} 与 index.html 在同一目录</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Fallback Indicator */}
+                    {isUsingFallback && !videoError && (
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 bg-yellow-500/20 text-yellow-200 text-[10px] px-2 py-1 rounded-full border border-yellow-500/30 backdrop-blur-sm pointer-events-none">
+                            预览模式 (本地视频未检测到)
+                        </div>
+                    )}
+
+                    {/* Background Layer (Clean/After) */}
+                    <div className="absolute inset-0 w-full h-full isolate">
+                        {type === 'image' ? (
+                            <img src={effectiveSrc} alt="After" className={`w-full h-full object-cover object-${objectPosition}`} draggable="false" />
+                        ) : (
+                            <video 
+                                ref={videoRef1} 
+                                src={effectiveSrc} 
+                                className="w-full h-full object-cover" 
+                                autoPlay 
+                                muted 
+                                loop 
+                                playsInline 
+                                onError={handleVideoError}
+                            />
+                        )}
+                        <span className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white/90 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded border border-white/10">
+                            {labelAfter}
+                        </span>
+                    </div>
+
+                    {/* Foreground Layer (Messy/Before) - Clipped */}
+                    <div 
+                        className="absolute inset-0 w-full h-full bg-slate-800 isolate z-10"
+                        style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+                    >
+                        {type === 'image' ? (
+                            <img src={effectiveSrcBefore} alt="Before" className={`w-full h-full object-cover object-${objectPosition} ${effectiveBeforeFilter}`} draggable="false" />
+                        ) : (
+                            <video 
+                                ref={videoRef2} 
+                                src={effectiveSrcBefore} 
+                                className={`w-full h-full object-cover ${effectiveBeforeFilter}`} 
+                                autoPlay 
+                                muted 
+                                loop 
+                                playsInline 
+                                onError={handleVideoError}
+                            />
+                        )}
+                        <span className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white/90 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded border border-white/10">
+                            {labelBefore}
+                        </span>
+                    </div>
+
+                    {/* Slider Handle */}
+                    {!videoError && (
+                        <div className="absolute top-0 bottom-0 w-1 bg-white/80 cursor-ew-resize shadow-[0_0_10px_rgba(0,0,0,0.5)] z-30" style={{ left: `${sliderPosition}%` }}>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-xl slider-handle text-blue-900 transition-transform transform group-active:scale-110">
+                                <Icon name="code-2" size={20} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Hero = () => {
+            return (
+                <div className="relative pt-32 pb-20 lg:pt-40 lg:pb-24 overflow-hidden">
+                    <div className="absolute inset-0 z-0">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] opacity-60 pointer-events-none"></div>
+                        <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-indigo-500/10 rounded-full blur-[100px] opacity-40 pointer-events-none"></div>
+                    </div>
+
+                    <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                        
+                        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6">
+                            探索<span className="clip-text-gradient">底层视觉增强</span>的前沿
+                        </h1>
+                        <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-slate-400 mb-10 leading-relaxed">
+                            MILab 致力于图像超分辨率、去噪、去雨雾、及视频时序复原等方向的算法研究，在提升感知质量与模型效率方面取得多项 SOTA 成果。
+                        </p>
+                        
+                        <div className="flex justify-center mb-16">
+                            <button 
+                                className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-full text-lg font-bold transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-3 group transform hover:-translate-y-1"
+                            >
+                                <Icon name="file-text" size={20} /> 
+                                <span>|</span>
+                                <Icon name="github" size={20} /> 
+                                论文与代码
+                            </button>
+                        </div>
+
+                        {/* Main Hero Comparison */}
+                        <div className="mx-auto max-w-6xl shadow-2xl shadow-black/50 rounded-2xl border border-slate-800 bg-slate-900/50 p-1 md:p-2 backdrop-blur-xl mt-12">
+                            <ComparisonSlider 
+                                src="https://images.unsplash.com/photo-1549608276-5786777e6587?q=80&w=2070&auto=format&fit=crop" 
+                                beforeFilter="filter-blur"
+                                labelBefore="INPUT"
+                                labelAfter="OURS"
+                                heightClass="h-[400px] md:h-[650px]"
+                                objectPosition="top"
+                            />
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const FeatureCard = ({ icon, title, subtitle, desc, image, imageBefore, filter, labelBefore, labelAfter }) => (
+            <div className="bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800 hover:border-blue-500/30 transition-all duration-300 group hover:shadow-xl hover:shadow-blue-900/10 flex flex-col h-full">
+                <div className="p-6 flex-1">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${icon.bgColor} ${icon.color}`}>
+                        <Icon name={icon.name} size={24} />
+                    </div>
+                    <div className="mb-2">
+                        <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{title}</h3>
+                        <span className="text-xs text-slate-500 font-mono uppercase tracking-wide">{subtitle}</span>
+                    </div>
+                    <p className="text-slate-400 mb-6 text-sm leading-relaxed">{desc}</p>
+                    <div className="rounded-lg overflow-hidden border border-slate-700/50 relative mt-auto">
+                        <ComparisonSlider 
+                            src={image} 
+                            srcBefore={imageBefore}
+                            beforeFilter={filter}
+                            heightClass="h-48"
+                            labelBefore={labelBefore}
+                            labelAfter={labelAfter}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+
+        const FeaturesSection = () => {
+            const features = [
+                {
+                    title: "超分辨率重建",
+                    subtitle: "Super-Resolution",
+                    desc: "致力于解决低分辨率图像中纹理细节丢失与边缘模糊的问题，有效恢复图像的高频信息，显著提升视觉感知的清晰度与真实感。",
+                    image: "imgs/flowers.png",
+                    imageBefore: "imgs/flowers_lr.png",
+                    filter: "",
+                    labelBefore: "INPUT",
+                    labelAfter: "OURS",
+                    icon: { name: "maximize", color: "text-blue-400", bgColor: "bg-blue-500/10" }
+                },
+                {
+                    title: "极端低光照增强",
+                    subtitle: "Low-Light Enhancement",
+                    desc: "旨在解决极低光照环境下的可见性差、色彩失真及噪声干扰问题，实现亮度的自适应调整与细节的清晰重现，提升夜间场景的视觉质量。",
+                    image: "imgs/a2157-kme_230.jpg",
+                    imageBefore: "imgs/a2157-kme_230_N1.5.jpg",
+                    filter: "",
+                    labelBefore: "INPUT",
+                    labelAfter: "OURS",
+                    icon: { name: "moon", color: "text-indigo-400", bgColor: "bg-indigo-500/10" }
+                },
+                {
+                    title: "去雨去雾复原",
+                    subtitle: "Deraining & Dehazing",
+                    desc: "聚焦于恶劣天气下的图像退化问题，有效去除画面中的雨纹遮挡与雾霾干扰，恢复清晰的背景内容，保障户外视觉系统在复杂环境下的鲁棒性。",
+                    image: "imgs/derain.png",
+                    imageBefore: "imgs/streak2.png",
+                    filter: "",
+                    labelBefore: "INPUT",
+                    labelAfter: "OURS",
+                    icon: { name: "cloud-rain", color: "text-cyan-400", bgColor: "bg-cyan-500/10" }
+                },
+                {
+                    title: "图像去噪",
+                    subtitle: "Image Denoising",
+                    desc: "针对高感光度拍摄及暗光成像中常见的复杂噪声问题，致力于在去除颜色与亮度噪声的同时，最大程度地保留图像原本的纹理结构与细节特征。",
+                    image: "imgs/denoise1.png",         // GT / After
+                    imageBefore: "imgs/NOISY1.png", // Noisy Input / Before
+                    filter: "",                // Disable CSS filter
+                    labelBefore: "INPUT",
+                    labelAfter: "OURS",
+                    icon: { name: "sparkles", color: "text-purple-400", bgColor: "bg-purple-500/10" }
+                },
+                {
+                    title: "去摩尔纹",
+                    subtitle: "De-moiré",
+                    desc: "专注于解决屏幕翻拍过程中产生的频率混叠干扰（摩尔纹）问题，精准分离并消除复杂的彩色条纹与伪影，还原屏幕内容的真实原貌。",
+                    image: "imgs/0013.png",           // GT / After
+                    imageBefore: "imgs/0013_moire.jpg", // Moiré Input / Before
+                    filter: "",                  // Disable CSS filter
+                    labelBefore: "INPUT",
+                    labelAfter: "OURS",
+                    icon: { name: "grid", color: "text-pink-400", bgColor: "bg-pink-500/10" }
+                },
+                {
+                    title: "图像去反光",
+                    subtitle: "Reflection Removal",
+                    desc: "旨在解决透过玻璃拍摄时产生的反光遮挡与重影干扰问题，实现背景层与反射层的有效分离，恢复透过玻璃看到的清晰场景。",
+                    image: "imgs/rr-ours.png",
+                    imageBefore: "imgs/rr-input.png",
+                    filter: "",
+                    labelBefore: "INPUT",
+                    labelAfter: "OURS",
+                    icon: { name: "layers", color: "text-orange-400", bgColor: "bg-orange-500/10" }
+                }
+            ];
+
+            return (
+                <div id="research" className="py-24 bg-slate-950 relative">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-16">
+                            <h2 className="text-blue-500 font-bold tracking-wide uppercase text-sm">研究方向</h2>
+                            <p className="mt-2 text-3xl md:text-4xl font-bold text-white">
+                                聚焦视觉内容理解与增强
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {features.map((f, i) => <FeatureCard key={i} {...f} />)}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PaperItem = ({ title, authors, conf, year, image, pdfLink, codeLink }) => (
+            <div className="flex flex-col md:flex-row gap-6 p-6 rounded-2xl bg-slate-900 border border-slate-800 transition-all paper-card-hover group">
+                <div className="w-full md:w-64 h-40 flex-shrink-0 rounded-xl overflow-hidden bg-slate-800 relative">
+                     {/* Image Placeholder with Conf Tag */}
+                     <img src={image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={title} />
+                     <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow">{conf}</div>
+                </div>
+                <div className="flex flex-col justify-center">
+                    <h3 className="text-xl font-bold text-slate-100 mb-2 leading-snug group-hover:text-blue-400 transition-colors">{title}</h3>
+                    <p className="text-slate-400 text-sm mb-1">{authors}</p>
+                    <p className="text-slate-500 text-xs font-mono mb-4">{conf} {year}</p>
+                    <div className="flex gap-4">
+                        {pdfLink && pdfLink !== "#" && (
+                            <a href={pdfLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm font-semibold text-slate-300 hover:text-white transition-colors">
+                                <Icon name="file-text" size={16} /> PDF
+                            </a>
+                        )}
+                        {codeLink && codeLink !== "#" && (
+                            <a href={codeLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm font-semibold text-slate-300 hover:text-white transition-colors">
+                                <Icon name="github" size={16} /> Code
+                            </a>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const PublicationsSection = () => {
+            const [showAll, setShowAll] = useState(false);
+
+            const papers = [
+                {
+                    title: "Image De-Raining Transformer",
+                    authors: "Jie Xiao, Xueyang Fu, Aiping Liu, Feng Wu, Zheng-Jun Zha",
+                    conf: "IEEE TPAMI",
+                    year: "2022",
+                    // Changed to a clearer rain scene
+                    image: "imgs/Image De-Raining Transformer.png", 
+                    pdfLink: "https://ieeexplore.ieee.org/abstract/document/9798773",
+                    codeLink: "https://github.com/jiexiaou/IDT"
+                },
+                {
+                    title: "Camera Lens Super-Resolution",
+                    authors: "Chang Chen, Zhiwei Xiong, Xinmei Tian, Zheng-Jun Zha, Feng Wu",
+                    conf: "CVPR",
+                    year: "2019",
+                    // Changed to a detailed camera lens close-up
+                    image: "imgs/Camera Lens Super-Resolution.png", 
+                    pdfLink: "https://openaccess.thecvf.com/content_CVPR_2019/html/Chen_Camera_Lens_Super-Resolution_CVPR_2019_paper.html",
+                    codeLink: "https://github.com/ngchc/CameraSR"
+                },
+                {
+                    title: "Bijective Mapping Network for Shadow Removal",
+                    authors: "Yurui Zhu, Jie Huang, Xueyang Fu, Feng Zhao, Qibin Sun, Zheng-Jun Zha",
+                    conf: "CVPR",
+                    year: "2022",
+                    // Changed to a shadow theme image
+                    image: "imgs/Bijective Mapping Network for Shadow Removal.png", 
+                    pdfLink: "https://openaccess.thecvf.com/content/CVPR2022/html/Zhu_Bijective_Mapping_Network_for_Shadow_Removal_CVPR_2022_paper.html",
+                    codeLink: "https://github.com/KevinJ-Huang/BMNet"
+                },
+                {
+                    title: "Real-world Image Denoising with Deep Boosting",
+                    authors: "Chang Chen, Zhiwei Xiong, Xinmei Tian, Zheng-Jun Zha, Feng Wu",
+                    conf: "IEEE TPAMI",
+                    year: "2020",
+                    // Changed to a low-light night scene representing real-world noise scenarios
+                    image: "imgs/Real-World Image Denoising with Deep Boosting.png", 
+                    pdfLink: "https://ieeexplore.ieee.org/abstract/document/8733117",
+                    codeLink: null
+                }
+            ];
+
+            const visiblePapers = showAll ? papers : papers.slice(0, 3);
+
+            return (
+                <div id="publications" className="py-24 bg-slate-900 border-t border-slate-800">
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-end mb-12">
+                            <div>
+                                <h2 className="text-blue-500 font-bold tracking-wide uppercase text-sm">发表论文</h2>
+                                <p className="mt-2 text-3xl font-bold text-white">精选学术成果</p>
+                            </div>
+                            <button 
+                                className="text-slate-400 hover:text-white text-sm flex items-center gap-1 transition-colors cursor-pointer select-none"
+                                onClick={() => setShowAll(!showAll)}
+                            >
+                                {showAll ? "收起列表" : "查看全部列表"} 
+                                <Icon name={showAll ? "chevron-up" : "arrow-right"} size={16} />
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-6 transition-all duration-500 ease-in-out">
+                            {visiblePapers.map((paper, i) => (
+                                <PaperItem key={i} {...paper} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const VideoSection = () => {
+            return (
+                <div id="video-restoration" className="py-24 bg-slate-950 border-t border-slate-900 relative overflow-hidden">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                            <div>
+                                <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">视频超分与去模糊</span>
+                                </h2>
+                                <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+                                    针对视频序列中常见的运动模糊、分辨率低下以及帧间抖动问题，致力于在恢复单帧清晰细节的同时，保持视频序列在时间维度上的流畅性与一致性，消除闪烁与伪影。
+                                </p>
+                                
+                                <ul className="space-y-6 mb-10">
+                                    {[
+                                        { title: "Video Super-Resolution", desc: "解决视频分辨率不足的问题，从低清源视频中重建出高分辨率、细节丰富的画面。", icon: "film" },
+                                        { title: "Frame Interpolation (VFI)", desc: "解决低帧率导致的画面卡顿问题，生成中间帧以实现丝滑的慢动作或高帧率播放。", icon: "layers" },
+                                        { title: "Real-time Processing", desc: "解决高计算复杂度带来的延迟问题，实现高效、低延迟的视频增强处理。", icon: "zap" }
+                                    ].map((item, i) => (
+                                        <li key={i} className="flex items-start">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-blue-400">
+                                                <Icon name={item.icon} size={20} />
+                                            </div>
+                                            <div className="ml-4">
+                                                <h4 className="text-white font-bold text-base">{item.title}</h4>
+                                                <p className="text-slate-500 text-sm mt-1">{item.desc}</p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 opacity-30 blur-2xl rounded-3xl group-hover:opacity-50 transition-opacity duration-500"></div>
+                                <div className="relative bg-slate-900 rounded-2xl border border-slate-700/50 p-3 shadow-2xl">
+                                    <div className="flex justify-between items-center px-2 mb-3">
+                                        <div className="flex gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                        </div>
+                                        <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Result Preview</span>
+                                    </div>
+                                    
+                                    <ComparisonSlider 
+                                        type="video"
+                                        src="imgs/good.mp4"
+                                        srcBefore="imgs/bad.mp4"
+                                        fallbackSrc="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+                                        heightClass="h-64 sm:h-80 lg:h-96"
+                                        labelBefore="INPUT"
+                                        labelAfter="OURS"
+                                    />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const TeamSection = () => {
+            const people = [
+                { 
+                    name: "查正军", 
+                    role: "Professor", 
+                    img: "imgs/查正军.png", 
+                    link: "https://auto.ustc.edu.cn/2021/0510/c25976a484878/page.htm" 
+                },
+                { 
+                    name: "傅雪阳", 
+                    role: "Professor", 
+                    img: "imgs/傅雪阳.png", 
+                    link: "https://auto.ustc.edu.cn/2021/0510/c25976a484897/page.htm" 
+                },
+                { 
+                    name: "曹洋", 
+                    role: "Associate Professor", 
+                    img: "imgs/曹洋.png", 
+                    link: "https://auto.ustc.edu.cn/2021/0510/c25977a484907/page.htm" 
+                },
+                { 
+                    name: "翟伟", 
+                    role: "Associate Professor", 
+                    img: "imgs/翟伟.png", 
+                    link: "https://auto.ustc.edu.cn/2022/0919/c25977a570106/page.htm" 
+                },
+                { 
+                    name: "刘嘉威", 
+                    role: "Associate Professor", 
+                    img: "imgs/刘嘉威.png", 
+                    link: "https://auto.ustc.edu.cn/2021/0510/c25977a484823/page.htm" 
+                }
+            ];
+
+            return (
+                <div id="team" className="py-24 bg-slate-900 border-t border-slate-800">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-16">
+                            <h2 className="text-blue-500 font-bold tracking-wide uppercase text-sm">团队成员</h2>
+                            <p className="mt-2 text-3xl font-bold text-white">MILab Research Team</p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-10">
+                            {people.map((p, i) => (
+                                <a 
+                                    key={i} 
+                                    href={p.link} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col items-center group w-48 cursor-pointer"
+                                >
+                                    <div className="w-32 h-32 rounded-full overflow-hidden mb-4 border-2 border-slate-700 group-hover:border-blue-500 transition-colors shadow-lg relative">
+                                        <img src={p.img} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        {/* Hover Overlay Icon */}
+                                        <div className="absolute inset-0 bg-blue-600/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Icon name="external-link" size={24} className="text-white" />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white tracking-wide group-hover:text-blue-400 transition-colors">{p.name}</h3>
+                                    <p className="text-blue-400 text-xs font-mono uppercase mt-1 font-semibold">{p.role}</p>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-slate-950 border-t border-slate-900 py-16 text-slate-400">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+                                    <Icon name="aperture" className="text-white" size={18} />
+                                </div>
+                                <span className="text-white font-bold text-xl">MILab</span>
+                            </div>
+                            <div className="text-sm text-center md:text-right">
+                                <p>© 2025 Multimedia Intelligence Lab. All Rights Reserved.</p>
+                                <p className="text-slate-600 mt-1">地址：中国科学技术大学信息技术学院自动化系 xxx 室</p>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const App = () => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            });
+
+            return (
+                <div className="min-h-screen bg-slate-950 text-slate-50">
+                    <Navbar />
+                    <Hero />
+                    <FeaturesSection />
+                    <VideoSection />
+                    <PublicationsSection />
+                    <TeamSection />
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
