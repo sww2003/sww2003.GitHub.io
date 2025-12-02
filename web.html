@@ -622,6 +622,76 @@
             );
         };
 
+	const SubtitleRemovalSection = () => {
+            return (
+                <div id="subtitle-removal" className="py-24 bg-slate-900 border-t border-slate-800 relative overflow-hidden">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                            
+                            {/* Visual Side (Left) - 为了视觉平衡，这里将视频放在左侧 */}
+                            <div className="relative group order-2 lg:order-1">
+                                {/* 背景光晕效果 - 使用 Emerald/Teal 色调 */}
+                                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-teal-600 opacity-30 blur-2xl rounded-3xl group-hover:opacity-50 transition-opacity duration-500"></div>
+                                <div className="relative bg-slate-800 rounded-2xl border border-slate-700/50 p-3 shadow-2xl">
+                                    <div className="flex justify-between items-center px-2 mb-3">
+                                        <div className="flex gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                        </div>
+                                        <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Inpainting Demo</span>
+                                    </div>
+                                    
+                                    {/* 视频对比滑块 */}
+                                    <ComparisonSlider 
+                                        type="video"
+                                        // 请替换为您实际的去字幕前后视频路径
+                                        src="imgs/无字幕.mp4"      // 处理后（无字幕）
+                                        srcBefore="imgs/有字幕.mp4"  // 处理前（有字幕）
+                                        // 这是一个备用在线视频，防止本地文件未找到时报错
+                                        fallbackSrc="https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" 
+                                        heightClass="h-64 sm:h-80 lg:h-96"
+                                        labelBefore="INPUT"
+                                        labelAfter="OURS"
+                                    />
+                                    
+                                </div>
+                            </div>
+
+                            {/* Text Side (Right) */}
+                            <div className="order-1 lg:order-2">
+                                <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400">视频去字幕与修复</span>
+                                </h2>
+                                <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+                                    利用先进的视频修补（Video Inpainting）技术，自动定位并擦除视频中的硬字幕。算法通过聚合时序上下文信息，智能从前后帧检索背景内容，填充被遮挡区域，确保修复后的画面纹理真实、时序连贯。
+                                </p>
+                                
+                                <ul className="space-y-6 mb-10">
+                                    {[
+                                        { title: "Smart Detection", desc: "无需人工生成掩膜（Mask），端到端网络自动精准定位字幕与水印区域。", icon: "scan-line" },
+                                        { title: "Temporal Consistency", desc: "利用光流引导或时序注意力机制，确保填充内容在时间维度上的稳定性，避免闪烁。", icon: "clock" },
+                                        { title: "Texture Recovery", desc: "高保真还原复杂背景纹理，即使在动态场景下也能实现无痕修复。", icon: "image" }
+                                    ].map((item, i) => (
+                                        <li key={i} className="flex items-start">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400">
+                                                <Icon name={item.icon} size={20} />
+                                            </div>
+                                            <div className="ml-4">
+                                                <h4 className="text-white font-bold text-base">{item.title}</h4>
+                                                <p className="text-slate-500 text-sm mt-1">{item.desc}</p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const TeamSection = () => {
             const people = [
                 { 
@@ -723,6 +793,7 @@
                     <Hero />
                     <FeaturesSection />
                     <VideoSection />
+		    <SubtitleRemovalSection />
                     <PublicationsSection />
                     <TeamSection />
                     <Footer />
